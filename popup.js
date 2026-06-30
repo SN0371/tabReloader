@@ -1,3 +1,8 @@
+function isValidDomain(domain) {
+  const toCheck = domain.startsWith("*.") ? domain.slice(2) : domain;
+  return /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$/i.test(toCheck);
+}
+
 function generateId() {
   return Math.random().toString(36).slice(2, 10);
 }
@@ -125,8 +130,8 @@ async function init() {
       return;
     }
 
-    if (!domain.includes(".")) {
-      showError("Bitte eine gültige Domain eingeben (z.B. cloud.oracle.com).");
+    if (!isValidDomain(domain)) {
+      showError("Bitte eine gültige Domain eingeben (z.B. cloud.oracle.com oder localhost).");
       domainInput.focus();
       return;
     }
