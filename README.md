@@ -19,10 +19,10 @@ The extension skips a scheduled reload if you're actively interacting with the t
 
 ## Installation
 
-1. Clone or download this repository.
+1. Download the latest release zip from the [Releases page](https://github.com/SN0371/tabReloader/releases) and unzip it (or clone this repository instead).
 2. Open `opera://extensions` in the address bar (or `chrome://extensions` in Chrome).
 3. Enable **Developer mode** (top right).
-4. Click **Load unpacked** and select the project folder.
+4. Click **Load unpacked** and select the unzipped folder.
 
 The extension icon will appear in the toolbar.
 
