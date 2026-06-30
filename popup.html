@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tab Reloader</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="header">
+    <img src="icons/icon48.png" alt="" class="logo">
+    <h1>Tab Reloader</h1>
+  </div>
+
+  <div class="add-rule">
+    <h2>Neue Regel</h2>
+    <div class="form-row">
+      <label for="domain">Domain</label>
+      <input type="text" id="domain" placeholder="z.B. cloud.oracle.com" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="form-row interval-row">
+      <label for="interval">Intervall</label>
+      <input type="number" id="interval" min="1" value="5">
+      <select id="unit">
+        <option value="60">Minuten</option>
+        <option value="1">Sekunden</option>
+      </select>
+    </div>
+    <button id="add-btn" class="btn-primary">Regel hinzufügen</button>
+  </div>
+
+  <div class="rules-section">
+    <h2>Aktive Regeln</h2>
+    <div id="rules-list" class="rules-list">
+      <p class="empty-hint">Noch keine Regeln definiert.</p>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
