@@ -69,6 +69,18 @@ function renderRules(rules) {
   }
 }
 
+async function prefillActiveTabDomain(domainInput) {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab?.url) return;
+    const url = new URL(tab.url);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return;
+    domainInput.value = url.hostname;
+  } catch {
+    // Aktiver Tab nicht ermittelbar (z.B. interne Browser-Seite), Feld bleibt leer
+  }
+}
+
 async function init() {
   const rules = await getRules();
   renderRules(rules);
@@ -84,6 +96,8 @@ async function init() {
   const domainInput = document.getElementById("domain");
   const intervalInput = document.getElementById("interval");
   const unitSelect = document.getElementById("unit");
+
+  await prefillActiveTabDomain(domainInput);
 
   // Zeige Fehler-Element dynamisch an
   let errorEl = document.createElement("p");
