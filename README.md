@@ -42,6 +42,17 @@ The extension icon will appear in the toolbar.
 - `content.js` — injected into every page; reports user interaction events (click, keydown, scroll, touch) to the background worker, throttled to avoid noise.
 - `popup.html` / `popup.js` / `popup.css` — the UI for managing rules, backed by `chrome.storage.sync`.
 
+## Testing
+
+`test/index.html` is a self-contained page for verifying extension behavior end to end: it tracks a reload counter, timestamps, and the interval between reloads in `localStorage`, and provides an interactive area (scroll box, slider) to trigger activity events.
+
+1. Serve the `test/` folder over HTTP, e.g. `python3 -m http.server 8000` from within it.
+2. Open `http://localhost:8000` in the browser with the extension loaded.
+3. Add a rule for `localhost` with a short interval (e.g. 1 minute).
+4. Watch the reload counter and the "previous interval" value to confirm reloads happen on schedule.
+5. Interact with the page (click, scroll, type) shortly before a scheduled reload to confirm it gets skipped.
+6. Use **Reset counter** to start a clean run.
+
 ## Permissions
 
 | Permission | Why it's needed |

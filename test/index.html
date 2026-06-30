@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tab Reloader Test Page</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #0f1226;
+    color: #e8eaf6;
+    min-height: 100vh;
+    padding: 32px;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  .sub { color: #9aa0bc; font-size: 13px; margin-bottom: 28px; }
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .card {
+    background: #1a1e3c;
+    border-radius: 10px;
+    padding: 18px;
+    border: 1px solid #2a2f5c;
+  }
+  .card .label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: #8b91c4;
+    margin-bottom: 6px;
+  }
+  .card .value {
+    font-size: 28px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .card.wide { grid-column: 1 / -1; }
+  .log {
+    background: #1a1e3c;
+    border-radius: 10px;
+    border: 1px solid #2a2f5c;
+    padding: 14px 18px;
+    max-height: 220px;
+    overflow-y: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+    line-height: 1.7;
+  }
+  .log div { color: #c5c9e8; }
+  .log .now { color: #6ee7b7; }
+  button {
+    background: #3d4faf;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 9px 16px;
+    font-size: 13px;
+    cursor: pointer;
+    margin-top: 16px;
+    margin-right: 8px;
+  }
+  button:hover { background: #4d5fc7; }
+  button.danger { background: #5c2a3a; }
+  button.danger:hover { background: #7a3a4d; }
+  .hint {
+    margin-top: 24px;
+    font-size: 12px;
+    color: #8b91c4;
+    line-height: 1.6;
+  }
+  .pulse {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #6ee7b7;
+    margin-right: 6px;
+    animation: blink 1.5s infinite;
+  }
+  @keyframes blink { 50% { opacity: 0.2; } }
+  input[type=range] { width: 100%; margin-top: 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1><span class="pulse"></span>Tab Reloader Test Page</h1>
+  <p class="sub">Reloads, timestamps, and an interaction log to verify extension behavior end to end.</p>
+
+  <div class="grid">
+    <div class="card">
+      <div class="label">Reload count</div>
+      <div class="value" id="reload-count">-</div>
+    </div>
+    <div class="card">
+      <div class="label">Page loaded at</div>
+      <div class="value" id="loaded-at" style="font-size:16px">-</div>
+    </div>
+    <div class="card">
+      <div class="label">Time since this load</div>
+      <div class="value" id="since-load">-</div>
+    </div>
+    <div class="card">
+      <div class="label">Previous interval</div>
+      <div class="value" id="prev-interval">-</div>
+    </div>
+    <div class="card wide">
+      <div class="label">Scroll or click here to simulate activity</div>
+      <div style="height:60px; overflow-y:scroll; border:1px dashed #3a3f6c; border-radius:6px; padding:8px; margin-top:8px;" id="scroll-box">
+        <p style="padding-bottom:80px; color:#9aa0bc; font-size:13px;">Scroll within this box, or click/type anywhere on the page. The extension's content script listens for these events and will skip the next scheduled reload if you interacted recently enough.</p>
+      </div>
+      <input type="range" min="0" max="100" value="50">
+    </div>
+  </div>
+
+  <div class="log" id="log"></div>
+
+  <button id="reset-btn">Reset counter</button>
+  <button id="manual-reload-btn" class="danger">Reload now</button>
+
+  <p class="hint">
+    Serve this page over HTTP (e.g. <code>python3 -m http.server</code> from the <code>test/</code> folder) and
+    add a rule in the extension for the resulting host (e.g. <code>localhost</code>). The reload count and log
+    persist across reloads via <code>localStorage</code>, scoped per origin/port. Use "Reset counter" to start
+    a clean test run.
+  </p>
+</div>
+
+<script>
+  const STORE_KEY = "tabReloaderTest";
+
+  function loadState() {
+    try {
+      return JSON.parse(localStorage.getItem(STORE_KEY)) || { count: 0, history: [] };
+    } catch {
+      return { count: 0, history: [] };
+    }
+  }
+
+  function saveState(state) {
+    localStorage.setItem(STORE_KEY, JSON.stringify(state));
+  }
+
+  function formatTime(ts) {
+    return new Date(ts).toLocaleTimeString();
+  }
+
+  function formatDuration(ms) {
+    const s = Math.floor(ms / 1000);
+    if (s < 60) return `${s}s`;
+    const m = Math.floor(s / 60);
+    const rem = s % 60;
+    return `${m}m ${rem}s`;
+  }
+
+  const state = loadState();
+  const now = Date.now();
+  const prevLoad = state.history.length ? state.history[state.history.length - 1] : null;
+
+  state.count += 1;
+  state.history.push(now);
+  if (state.history.length > 50) state.history = state.history.slice(-50);
+  saveState(state);
+
+  document.getElementById("reload-count").textContent = state.count;
+  document.getElementById("loaded-at").textContent = formatTime(now);
+  document.getElementById("prev-interval").textContent = prevLoad
+    ? formatDuration(now - prevLoad)
+    : "n/a (first load)";
+
+  function renderLog() {
+    const log = document.getElementById("log");
+    const entries = [...state.history].reverse();
+    log.innerHTML = entries.map((ts, i) => {
+      const cls = i === 0 ? "now" : "";
+      const delta = i < entries.length - 1 ? ` (+${formatDuration(ts - entries[i + 1])})` : "";
+      return `<div class="${cls}">#${state.count - i} — ${new Date(ts).toLocaleString()}${delta}</div>`;
+    }).join("");
+  }
+  renderLog();
+
+  setInterval(() => {
+    document.getElementById("since-load").textContent = formatDuration(Date.now() - now);
+  }, 1000);
+
+  document.getElementById("reset-btn").addEventListener("click", () => {
+    localStorage.removeItem(STORE_KEY);
+    location.reload();
+  });
+
+  document.getElementById("manual-reload-btn").addEventListener("click", () => {
+    location.reload();
+  });
+</script>
+</body>
+</html>
